@@ -46,7 +46,25 @@ def fmt(fmt_str):
     return lambda item: fmt_str.format(item)
 
 
-def ptable(headers, *rows, max_width=200, str=str, str_by_type={}):
+def ljust(s, width):
+    return s.ljust(width)
+
+
+def rjust(s, width):
+    return s.rjust(width)
+
+
+def cjust(s, width):
+    if width <= len(s):
+        return s
+    extra = width - len(s)
+    r = extra // 2
+    l = r + extra % 2
+    s = s.ljust(l + len(s))
+    return s.rjust(r + len(s))
+
+
+def ptable(headers, *rows, max_width=200, str=str, str_by_type={}, justification=()):
     """
     Make an easily readable table.
 
@@ -100,12 +118,26 @@ def ptable(headers, *rows, max_width=200, str=str, str_by_type={}):
     for header in headers:
         header.extend([""] * (header_height - len(header)))
     for line in zip(*headers):
-        out += "| {} |\n".format(" | ".join(col_line.ljust(col_widths[i]) for i, col_line in enumerate(line)))
-    out += "| {} |\n".format(" | ".join("-" * cw for cw in col_widths))
+        out += "| {} |\n".format(
+            " | ".join(
+                just(col_line, col_widths[i])
+                for i, (just, col_line)
+                in enumerate(zip_longest(justification, line, fillvalue=ljust))))
+    out += "|"
+    for just, cw in zip_longest(justification, col_widths, fillvalue=ljust):
+        # markdown justification markers
+        l = ":" if just in (ljust, cjust) else " "
+        r = ":" if just in (cjust, rjust) else " "
+        out += "{}{}{}|".format(l, "-" * cw, r)
+    out += "\n"
     for row in rows:
         row_height = max(len(c) for c in row)
         for col in row:
             col.extend([""] * (row_height - len(col)))
         for line in zip(*row):
-            out += "| {} |\n".format(" | ".join(col_line.ljust(col_widths[i]) for i, col_line in enumerate(line)))
+            out += "| {} |\n".format(
+                " | ".join(
+                    just(col_line, col_widths[i])
+                    for i, (just, col_line)
+                    in enumerate(zip_longest(justification, line, fillvalue=ljust))))
     return out
