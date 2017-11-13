@@ -1,7 +1,7 @@
 # TODO:
 #  - handle tab and other non-monospace characters better
 #  - recognize numeric columns and right justify them
-#  - allow overriding formatting by data type/column
+#  - recalculate max widths for chopped columns to avoid trailing whitespace
 
 from collections import defaultdict
 from itertools import zip_longest
@@ -37,17 +37,30 @@ def _squeeze(lines, width):
     return out
 
 
-def ptable(headers, *rows, max_width=200):
+def fmt(fmt_str):
+    """
+    Helper to convert a format string into a function that allies its argument to the format.
+
+    :param fmt_str: string appropriate for using with string.format
+    :return: A function which applies its single argument to fmt_str
+    """
+    return lambda item: fmt_str.format(item)
+
+
+def ptable(headers, *rows, max_width=200, str=str, str_by_type={}):
     """
     Make an easily readable table.
 
     :param headers: iterable of header values
     :param rows: iterables of column contents (must all be the same length as headers)
     :param max_width: maximum number of columns for the table (including margins and separators)
+    :param str: function to convert items to strings
+    :param str_by_type: dictionary mapping types to custom str functions to be used for those types
+                        used in preference over default str except for headers which always use default str
     :return: a string containing the table
     """
     headers = [str(h).split("\n") for h in headers]
-    rows = [[str(c).split("\n") for c in row] for row in rows]
+    rows = [[(str_by_type.get(type(c)) or str)(c).split("\n") for c in row] for row in rows]
     assert len(set(len(row) for row in rows) | {len(headers)}) == 1, "headers and rows must have same number of columns"
     # 2 chars padding on the left, 3 between each column, 2 on the right
     available_width = max_width - 2 - (len(headers) - 1) * 3 - 2
@@ -91,6 +104,3 @@ def ptable(headers, *rows, max_width=200):
         for line in zip(*row):
             out += "| {} |\n".format(" | ".join(col_line.ljust(col_widths[i]) for i, col_line in enumerate(line)))
     return out
-
-
-print(ptable(("one", "two", "three"), ("short", "medium but still pretty short", "really long " * 10), max_width=30))
