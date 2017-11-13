@@ -43,7 +43,7 @@ def fmt(fmt_str):
     :param fmt_str: string appropriate for using with string.format
     :return: A function which applies its single argument to fmt_str
     """
-    return lambda item: fmt_str.format(item)
+    return fmt_str.format
 
 
 def ljust(s, width):
