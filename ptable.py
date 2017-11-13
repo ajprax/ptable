@@ -1,7 +1,6 @@
 # TODO:
 #  - handle tab and other non-monospace characters better
 #  - recognize numeric columns and right justify them
-#  - recalculate max widths for chopped columns to avoid trailing whitespace
 
 from collections import defaultdict
 from itertools import zip_longest
@@ -26,14 +25,14 @@ def _squeeze(lines, width):
         for token in token_line:
             if sum(len(token) for token in line) + len(token) + len(line) > width:
                 if line:
-                    out.append(" ".join(line).ljust(width))
+                    out.append(" ".join(line))
                 while len(token) > width:
                     out.append(token[:width])
                     token = token[width:]
                 line = [token]
             else:
                 line.append(token)
-        out.append(" ".join(line).ljust(width))
+        out.append(" ".join(line))
     return out
 
 
@@ -88,7 +87,13 @@ def ptable(headers, *rows, max_width=200, str=str, str_by_type={}):
         for i, tc in to_chop.items():
             col_widths[i] -= tc
         headers = [_squeeze(h, col_widths[i]) for i, h in enumerate(headers)]
-        rows = ([_squeeze(c, col_widths[i]) for i, c in enumerate(row)] for row in rows)
+        rows = [[_squeeze(c, col_widths[i]) for i, c in enumerate(row)] for row in rows]
+        # recalculate the max width after the squeeze and use the lesser of that and the current width to avoid
+        # whitespace at the end of wrapped lines
+        for i, (header, col) in enumerate(zip_longest(headers, zip(*rows), fillvalue=())):
+            widths = [max(len(line) for line in r) for r in col]
+            widths.append(max(len(line) for line in header))
+            col_widths[i] = min(col_widths[i], max(widths))
 
     out = ""
     header_height = max(len(h) for h in headers)
