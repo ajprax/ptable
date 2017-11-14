@@ -38,7 +38,7 @@ def _squeeze(lines, width):
 
 def fmt(fmt_str):
     """
-    Helper to convert a format string into a function that allies its argument to the format.
+    Helper to convert a format string into a function that applies its argument to the format.
 
     :param fmt_str: string appropriate for using with string.format
     :return: A function which applies its single argument to fmt_str
